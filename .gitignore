@@ -13,6 +13,7 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.pio/
 
 # Session database (SQLite, Phase 2) and bench/session spreadsheets.
 *.db
