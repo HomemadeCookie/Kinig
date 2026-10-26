@@ -1,15 +1,19 @@
 """Load the three TOML files under hub/config/.
 
 Pod programs must not hardcode chunk_ms, buffer_count, window_s, or mic_shift.
-Those numbers live in config/pod.toml. Phase 2's POST /sessions hands them out.
+Those numbers live in config/pod.toml. POST /sessions hands them out.
 This module only reads files. It does not choose or run a model.
 """
 
 from __future__ import annotations
 
+import logging
+import socket
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
+
+log = logging.getLogger("kinig.config")
 
 
 def hub_dir() -> Path:
@@ -52,13 +56,51 @@ class Config:
     models: dict
 
 
-def load_config() -> Config:
-    config_dir = hub_dir() / "config"
+def config_dir() -> Path:
+    return hub_dir() / "config"
+
+
+def load_config(folder: Path | None = None) -> Config:
+    directory = folder if folder is not None else config_dir()
     return Config(
-        hub=_read_toml(config_dir / "hub.toml"),
-        pod=_read_toml(config_dir / "pod.toml"),
-        models=_read_toml(config_dir / "models.toml"),
+        hub=_read_toml(directory / "hub.toml"),
+        pod=_read_toml(directory / "pod.toml"),
+        models=_read_toml(directory / "models.toml"),
     )
+
+
+def resolved_public_host(hub_settings: dict) -> str:
+    """Address used in notes URLs and QR codes.
+
+    public_host = "auto" detects the laptop's LAN address at call time.
+    Any other value is used as written, so a pocket-router IP can override it.
+    """
+    raw = str(hub_settings.get("public_host", "auto")).strip()
+    if raw.lower() != "auto":
+        return raw
+    return detect_lan_ip()
+
+
+def detect_lan_ip() -> str:
+    """Best-effort LAN address. No packet is sent and nothing is downloaded.
+
+    Connecting a UDP socket makes the OS fill in the source address of the
+    default route. 192.0.2.1 is a documentation address, not a server we contact.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect(("192.0.2.1", 9))
+        ip = sock.getsockname()[0]
+    except OSError:
+        ip = "127.0.0.1"
+    finally:
+        sock.close()
+    if ip.startswith("127."):
+        log.warning(
+            "No LAN address detected. Phones cannot open 127.0.0.1. "
+            "Set public_host in hub/config/hub.toml to this laptop's IP."
+        )
+    return ip
 
 
 def _read_toml(path: Path) -> dict:

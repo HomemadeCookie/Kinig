@@ -6,7 +6,7 @@
 backend = "faster_whisper"
 
 [transcriber.options]
-model = "small"          # multilingual, not "small.en", so Tagalog/Taglish is kept
+model = "base"           # multilingual, not "base.en". Use "small" on a stronger laptop.
 language = "tl"          # or "auto"; benchmark both
 task = "transcribe"      # "translate" would turn Tagalog into English
 initial_prompt = "Okay, so yung deadline natin is Friday, tapos i-review natin yung contract."
@@ -17,6 +17,6 @@ fallback = "rule_based"  # used when the main summarizer errors or times out
 timeout_s = 60
 
 [summarizer.options]
-model = "llama3.2:3b"    # or a SEA-LION GGUF imported into Ollama
+model = "llama3.2:1b"    # 8 GB laptops. Use "llama3.2:3b" when the machine has room.
 prompt_file = "config/prompts/summary.txt"
 output_language = "en"

@@ -1,8 +1,7 @@
-# Notes URLs and QR codes are built from public_host.
-# Use the laptop's address on the pocket router, never localhost.
-# A phone cannot open localhost: that name points at the phone itself.
-# Replace TBD before the demo. Do not invent an address here.
-public_host = "TBD"
+# Notes URLs and QR codes are built from this address, never from localhost.
+# "auto" detects the laptop's LAN IP when the hub starts. Set a literal IP
+# (the pocket-router address) to override detection.
+public_host = "auto"
 
 # ESP32, fake_pod, the laptop dev page, and every notes page.
 http_port = 8000

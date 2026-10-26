@@ -241,6 +241,9 @@ def _print_qr(url: str) -> None:
         local = url.replace("://TBD:", "://127.0.0.1:", 1)
         print("public_host in hub.toml is still TBD, so this QR will not open on a phone.")
         print(f"On this laptop, until the router address is set, open:\n  {local}")
+    elif "://127." in url:
+        print("This notes URL uses a loopback address. A phone cannot open it.")
+        print("Set public_host in hub/config/hub.toml to this laptop's LAN IP, or use auto.")
     try:
         import qrcode
     except ImportError:

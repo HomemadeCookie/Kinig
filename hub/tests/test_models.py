@@ -51,7 +51,9 @@ def test_shipped_config_has_the_sections_the_hub_needs():
     assert config.hub["session_mode"] in {"end", "live"}
     assert isinstance(config.hub["public_host"], str)
     assert config.models["transcriber"]["backend"] == "faster_whisper"
+    assert config.models["transcriber"]["options"]["model"] == "base"
     assert config.models["summarizer"]["backend"] == "ollama"
+    assert config.models["summarizer"]["options"]["model"] == "llama3.2:1b"
     assert config.models["summarizer"]["fallback"] == "rule_based"
 
 

@@ -18,7 +18,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from kinig_hub.audio.buffer import AudioBuffer
-from kinig_hub.config import hub_dir
+from kinig_hub.config import hub_dir, resolved_public_host
 
 router = APIRouter()
 
@@ -26,8 +26,11 @@ _LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost"}
 
 
 def notes_url(config, session_id: str, token: str) -> str:
-    """Always HTTP on the hub port. Never the request host, never localhost."""
-    host = config.hub["public_host"]
+    """Always HTTP on the hub port. Never the request host, never localhost.
+
+    public_host "auto" is resolved here. A manual IP in hub.toml is kept as written.
+    """
+    host = resolved_public_host(config.hub)
     port = int(config.hub["http_port"])
     return f"http://{host}:{port}/s/{session_id}?t={quote(token, safe='')}"
 
@@ -54,20 +57,28 @@ def pod_settings(pod: dict) -> dict:
 @router.post("/sessions")
 async def start_session(request: Request):
     hub = request.app.state.hub
-    # Re-read so an edit to the toml files applies to the next meeting.
-    config = hub.reload_config()
     payload = await _json_object(request)
-    declared = str(payload.get("client") or "unknown")
     host = request.client.host if request.client else None
-    client = refine_client(declared, host)
-    mode = str(payload.get("mode") or config.hub.get("session_mode") or "end")
-    if mode not in {"end", "live"}:
+    return open_session(
+        hub,
+        declared=str(payload.get("client") or "unknown"),
+        mode=payload.get("mode"),
+        remote_host=host,
+    )
+
+
+def open_session(hub, *, declared: str, mode: str | None, remote_host: str | None) -> dict:
+    """Create a session and return the settings the caller must use."""
+    config = hub.reload_config()
+    client = refine_client(declared, remote_host)
+    chosen = str(mode or config.hub.get("session_mode") or "end")
+    if chosen not in {"end", "live"}:
         raise HTTPException(status_code=400, detail="mode must be 'end' or 'live'")
 
     settings = pod_settings(config.pod)
     session = hub.storage.create_session(
         client=client,
-        mode=mode,
+        mode=chosen,
         chunk_ms=int(settings["chunk_ms"]),
         buffer_count=int(settings["buffer_count"]),
         window_s=float(settings["window_s"]),
@@ -80,13 +91,12 @@ async def start_session(request: Request):
     )
     with hub.buffer_lock:
         hub.buffers[session["id"]] = buffer
-    url = notes_url(config, session["id"], session["token"])
     return {
         "session_id": session["id"],
         "token": session["token"],
-        "notes_url": url,
+        "notes_url": notes_url(config, session["id"], session["token"]),
         "client": client,
-        "mode": mode,
+        "mode": chosen,
         **settings,
     }
 
@@ -110,7 +120,10 @@ async def upload_audio(session_id: str, request: Request, seq: int = Query(...))
 
 @router.post("/sessions/{session_id}/stop")
 async def stop_session(session_id: str, request: Request):
-    hub = request.app.state.hub
+    return close_session(request.app.state.hub, session_id)
+
+
+def close_session(hub, session_id: str) -> dict:
     session = _require_session(hub, session_id)
     with hub.buffer_lock:
         if session_id in hub.stopping:
@@ -132,6 +145,14 @@ async def stop_session(session_id: str, request: Request):
         "status": current["status"] if current else session["status"],
         "notes_url": notes_url(hub.config, session_id, session["token"]),
     }
+
+
+def queue_chunk(hub, session_id: str, seq: int, pcm: bytes) -> None:
+    """Same path as POST /audio. Used by the dev file upload."""
+    started = time.perf_counter()
+    windows = _accept_chunk(hub, session_id, seq, pcm, started)
+    for audio in windows:
+        hub.worker.submit_transcribe(session_id, audio)
 
 
 @router.get("/s/{session_id}/transcript")

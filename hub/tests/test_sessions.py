@@ -104,7 +104,8 @@ def test_start_returns_pod_settings_from_the_config_file(tmp_path: Path):
         assert body["window_s"] == pod["window_s"]
         assert body["mic_shift"] == pod["mic_shift"]
         assert body["mode"] == "end"
-        assert body["notes_url"].startswith("http://TBD:8000/s/")
+        assert body["notes_url"].startswith("http://")
+        assert "://auto:" not in body["notes_url"]
         assert "localhost" not in body["notes_url"]
 
 
