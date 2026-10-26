@@ -1,0 +1,10 @@
+# Sent to every pod in the POST /sessions response.
+# The ESP32, the browser pod, and fake_pod.py must use these values.
+# Nothing in those programs may hardcode them.
+# A change applies to the next recording. Buffers are sized when a session starts.
+
+chunk_ms = 1000          # audio per POST
+buffer_count = 4        # buffers in the ESP32 queue
+window_s = 8            # hub transcription window (separate from chunk size)
+mic_shift = 14          # 32-bit I2S sample -> 16-bit; higher is quieter
+debug_save_audio = false  # true writes a WAV under hub/debug_audio/ (testing only)

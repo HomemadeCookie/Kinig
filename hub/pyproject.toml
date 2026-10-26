@@ -1,0 +1,36 @@
+[project]
+name = "kinig-hub"
+version = "0.1.0"
+description = "Offline edge hub for the Kinig meeting pod."
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "faster-whisper>=1.0.3",
+    "fastapi>=0.115",
+    "uvicorn>=0.32",
+    "qrcode>=8",
+    "av>=12",
+    "sounddevice>=0.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+# kinig_hub/ sits next to this file. `pip install -e hub` from the repo root
+# makes `import kinig_hub` work in scripts/ and in tests.
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kinig_hub*"]
+
+[tool.setuptools.package-data]
+kinig_hub = ["web/templates/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

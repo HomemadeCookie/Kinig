@@ -1,0 +1,19 @@
+# Notes URLs and QR codes are built from public_host.
+# Use the laptop's address on the pocket router, never localhost.
+# A phone cannot open localhost: that name points at the phone itself.
+# Replace TBD before the demo. Do not invent an address here.
+public_host = "TBD"
+
+# ESP32, fake_pod, the laptop dev page, and every notes page.
+http_port = 8000
+
+# Phone mic recording during development only. Served only when dev_https = true.
+https_port = 8443
+
+# Turn both off for the demo. dev.py is not loaded when dev_mode is false.
+dev_mode = false
+dev_https = false
+
+# end: transcribe and summarize after stop. live: transcribe rolling windows
+# during the meeting. A POST /sessions body can override this for one meeting.
+session_mode = "end"

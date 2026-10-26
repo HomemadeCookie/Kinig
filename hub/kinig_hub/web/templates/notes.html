@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kinig notes</title>
+  <style>
+    body { font-family: sans-serif; margin: 1.5rem; line-height: 1.4; color: #1a1a1a; }
+    h1 { font-size: 1.4rem; }
+    .status { font-weight: bold; }
+    section { margin-top: 1.2rem; }
+    pre { white-space: pre-wrap; font-family: inherit; }
+  </style>
+</head>
+<body>
+  <h1>Kinig notes</h1>
+  <p>Status: <span id="status" class="status">[[status]]</span></p>
+  <p id="error">[[error]]</p>
+  <section>
+    <h2>Summary</h2>
+    <p id="summary">[[summary]]</p>
+  </section>
+  <section>
+    <h2>Key points</h2>
+    <ul id="key-points">[[key_points]]</ul>
+  </section>
+  <section>
+    <h2>Action items</h2>
+    <ul id="action-items">[[action_items]]</ul>
+  </section>
+  <section>
+    <h2>Transcript</h2>
+    <pre id="transcript">[[transcript]]</pre>
+  </section>
+  <script>
+    // Same origin as this page. No CDN. Poll until the worker finishes.
+    const pollUrl = "[[poll_url]]";
+    const terminal = { done: true, error: true };
+
+    function fill(data) {
+      document.getElementById("status").textContent = data.status || "";
+      document.getElementById("error").textContent = data.error || "";
+      document.getElementById("summary").textContent = data.summary || "";
+      document.getElementById("transcript").textContent = data.transcript || "";
+      fillList("key-points", data.key_points);
+      fillList("action-items", data.action_items);
+    }
+
+    function fillList(id, items) {
+      const list = document.getElementById(id);
+      list.replaceChildren();
+      const values = items && items.length ? items : ["(none)"];
+      for (const item of values) {
+        const li = document.createElement("li");
+        li.textContent = item;
+        list.appendChild(li);
+      }
+    }
+
+    async function poll() {
+      try {
+        const response = await fetch(pollUrl);
+        if (!response.ok) return;
+        const data = await response.json();
+        fill(data);
+        if (!terminal[data.status]) setTimeout(poll, 1000);
+      } catch (err) {
+        setTimeout(poll, 2000);
+      }
+    }
+
+    const initial = document.getElementById("status").textContent;
+    if (!terminal[initial]) poll();
+  </script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Which models the hub runs. Change backends here, not in the pipeline.
+# The registry passes each [*.options] table to that adapter unchanged.
+# An adapter reads only the keys it understands.
+
+[transcriber]
+backend = "faster_whisper"
+
+[transcriber.options]
+model = "small"          # multilingual, not "small.en", so Tagalog/Taglish is kept
+language = "tl"          # or "auto"; benchmark both
+task = "transcribe"      # "translate" would turn Tagalog into English
+initial_prompt = "Okay, so yung deadline natin is Friday, tapos i-review natin yung contract."
+
+[summarizer]
+backend = "ollama"
+fallback = "rule_based"  # used when the main summarizer errors or times out
+timeout_s = 60
+
+[summarizer.options]
+model = "llama3.2:3b"    # or a SEA-LION GGUF imported into Ollama
+prompt_file = "config/prompts/summary.txt"
+output_language = "en"

@@ -1,0 +1,19 @@
+# Downloaded model weights. Fetch with scripts/download_models.py while online.
+model_files/
+
+# WAV files kept only when debug_save_audio = true. Off for the demo.
+debug_audio/
+
+# mkcert key and cert for phone dev recording (Phase 5).
+certs/
+
+# Local environments and Python build output.
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Session database (SQLite, Phase 2) and bench/session spreadsheets.
+*.db
+experiments/*.csv
