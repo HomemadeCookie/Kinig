@@ -5,11 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Kinig notes</title>
   <style>
-    body { font-family: sans-serif; margin: 1.5rem; line-height: 1.4; color: #1a1a1a; }
-    h1 { font-size: 1.4rem; }
-    .status { font-weight: bold; }
-    section { margin-top: 1.2rem; }
-    pre { white-space: pre-wrap; font-family: inherit; }
+    body {
+      font-family: sans-serif;
+      margin: 0 auto;
+      max-width: 40rem;
+      padding: 1.25rem;
+      line-height: 1.45;
+      color: #1a1a1a;
+      background: #f7f4ef;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+    h2 { font-size: 1.05rem; margin-bottom: 0.3rem; }
+    .status {
+      display: inline-block;
+      font-weight: bold;
+      padding: 0.15rem 0.5rem;
+      background: #fff;
+      border: 1px solid #ccc;
+    }
+    section { margin-top: 1.3rem; }
+    pre { white-space: pre-wrap; font-family: inherit; margin: 0; }
+    #error:empty { display: none; }
+    #error { color: #8a1f1f; }
   </style>
 </head>
 <body>
@@ -52,7 +69,7 @@
       const values = items && items.length ? items : ["(none)"];
       for (const item of values) {
         const li = document.createElement("li");
-        li.textContent = item;
+        li.textContent = String(item);
         list.appendChild(li);
       }
     }
@@ -63,14 +80,14 @@
         if (!response.ok) return;
         const data = await response.json();
         fill(data);
-        if (!terminal[data.status]) setTimeout(poll, 1000);
+        if (terminal[data.status]) return;
       } catch (err) {
-        setTimeout(poll, 2000);
+        // Keep the last text on screen if the hub blips.
       }
+      setTimeout(poll, 1000);
     }
 
-    const initial = document.getElementById("status").textContent;
-    if (!terminal[initial]) poll();
+    poll();
   </script>
 </body>
 </html>
