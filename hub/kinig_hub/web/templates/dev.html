@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kinig dev pod</title>
+  <style>
+    body { font-family: sans-serif; margin: 0 auto; max-width: 42rem; padding: 1rem; background: #f4f1ea; color: #1a1a1a; }
+    h1 { font-size: 1.4rem; }
+    button { font-size: 1.1rem; padding: 0.6rem 1.1rem; }
+    #banner { font-weight: bold; }
+    #qr { width: 220px; height: 220px; background: #fff; }
+    #qr[hidden], #notes-link[hidden] { display: none; }
+    .panel { margin-top: 1rem; background: #fff; padding: 0.8rem; border: 1px solid #ddd; }
+    label { display: block; margin: 0.4rem 0; }
+  </style>
+</head>
+<body>
+  <h1>Kinig dev pod</h1>
+  <p id="banner">Idle</p>
+  <p id="timer">00:00</p>
+  <label><input id="live" type="checkbox"> Live notes (QR at start)</label>
+  <label>Audio file <input id="file" type="file" accept="audio/*,.wav,.m4a,.mp3,.ogg"></label>
+  <p>
+    <button id="start" type="button">Start</button>
+    <button id="stop" type="button" disabled>Stop</button>
+  </p>
+  <img id="qr" alt="Notes QR" hidden>
+  <p><a id="notes-link" hidden>Open notes</a></p>
+  <div class="panel">
+    <div>Status: <span id="state">idle</span></div>
+    <div>Chunks: <span id="chunks">0</span></div>
+    <div>Gaps: <span id="gaps">none</span></div>
+    <div>Lag: <span id="lag">—</span></div>
+    <div>Transcriber: <span id="transcriber">—</span></div>
+    <div>Summarizer: <span id="summarizer">—</span></div>
+  </div>
+  <script src="/static/dev/pcm.js"></script>
+  <script src="/static/dev/pod.js"></script>
+</body>
+</html>

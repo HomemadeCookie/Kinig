@@ -36,6 +36,16 @@ class FinalizeJob:
     session_id: str
 
 
+@dataclass
+class ReloadJob:
+    """Swap models after PUT /config. The worker loads them between jobs."""
+
+    transcriber: Transcriber
+    summarizer: Summarizer
+    transcriber_name: str
+    summarizer_name: str
+
+
 class Worker:
     def __init__(
         self,
@@ -74,6 +84,20 @@ class Worker:
     def submit_finalize(self, session_id: str) -> None:
         self._queue.put(FinalizeJob(session_id))
 
+    def submit_reload(self, job: ReloadJob) -> None:
+        self._queue.put(job)
+
+    def snapshot(self, session_id: str) -> dict:
+        """Read-only view for the dev status panel. Copied so the page cannot mutate it."""
+        timing = self._timing.get(session_id) or {}
+        lags = list(timing.get("lags") or [])
+        return {
+            "transcriber": self.transcriber_name,
+            "summarizer": self.summarizer_name,
+            "lag_seconds": max(lags) if lags else None,
+            "load_error": self._load_error,
+        }
+
     def _run(self) -> None:
         try:
             self.transcriber.load()
@@ -91,8 +115,23 @@ class Worker:
                     self._transcribe(job)
                 elif isinstance(job, FinalizeJob):
                     self._finalize(job)
+                elif isinstance(job, ReloadJob):
+                    self._reload(job)
             except Exception:
                 log.exception("job failed for session %s", getattr(job, "session_id", "?"))
+
+    def _reload(self, job: ReloadJob) -> None:
+        self.transcriber = job.transcriber
+        self.summarizer = job.summarizer
+        self.transcriber_name = job.transcriber_name
+        self.summarizer_name = job.summarizer_name
+        try:
+            self.transcriber.load()
+            self.summarizer.load()
+            self._load_error = ""
+        except Exception as exc:
+            self._load_error = str(exc)
+            log.exception("model reload failed")
 
     def _timing_for(self, session_id: str) -> dict:
         row = self._timing.get(session_id)
