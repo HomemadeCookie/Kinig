@@ -21,3 +21,6 @@ experiments/*.csv
 
 # Pod Wi-Fi credentials. See firmware/kinig_pod/config.h.
 firmware/kinig_pod/secrets.h
+
+# PlatformIO installed by scripts/flash_pod.sh.
+firmware/.pio-venv/
