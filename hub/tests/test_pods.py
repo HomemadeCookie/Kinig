@@ -211,3 +211,14 @@ def test_host_page_and_home_redirect(tmp_path: Path):
     with TestClient(_app(tmp_path)) as client:
         assert "Kinig host" in client.get("/").text
         assert client.get("/host/qr/missing.svg").status_code == 404
+
+
+def test_host_state_has_what_the_oled_preview_needs(tmp_path: Path):
+    with TestClient(_app(tmp_path)) as client:
+        _pair(client)
+        session_id = client.post(f"/host/pods/{POD}/start").json()["session_id"]
+        pod = client.get("/host/state").json()["pods"][0]
+        assert pod["session_status"] == "recording"
+        assert pod["session_created_at"]
+        preview = client.get(f"/host/qr/{session_id}.bin").content
+        assert preview == client.get(f"/pods/{POD}/qr").content

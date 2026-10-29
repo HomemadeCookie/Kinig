@@ -43,6 +43,12 @@ def qr_modules(text: str) -> list[list[bool]]:
     return code.get_matrix()
 
 
+def qr_bytes(text: str) -> bytes:
+    """One byte with the side length N, then N*N bytes of 0 or 1, row by row."""
+    matrix = qr_modules(text)
+    return bytes([len(matrix)]) + bytes(1 if on else 0 for row in matrix for on in row)
+
+
 # ---------------------------------------------------------------- pod side
 
 
@@ -71,15 +77,12 @@ async def pod_state(pod_id: str, request: Request):
 
 @router.get("/pods/{pod_id}/qr")
 async def pod_qr(pod_id: str, request: Request):
-    """One byte with the side length N, then N*N bytes of 0 or 1, row by row."""
+    """The join QR as raw modules. See qr_bytes."""
     hub = request.app.state.hub
     pod = _pod_or_404(hub, pod_id)
     if pod.session_id is None:
         raise HTTPException(status_code=409, detail="pod has no session")
-    matrix = qr_modules(join_url(hub.config, pod.session_id))
-    size = len(matrix)
-    body = bytes([size]) + bytes(1 if on else 0 for row in matrix for on in row)
-    return Response(content=body, media_type="application/octet-stream")
+    return Response(content=qr_bytes(join_url(hub.config, pod.session_id)), media_type="application/octet-stream")
 
 
 def state_for(hub, pod: Pod) -> dict:
@@ -125,6 +128,7 @@ async def host_state(request: Request):
     pods = []
     for pod in hub.pods.all():
         state = state_for(hub, pod)
+        session = hub.storage.get_session(pod.session_id) if pod.session_id else None
         pods.append(
             {
                 "pod_id": pod.pod_id,
@@ -134,6 +138,9 @@ async def host_state(request: Request):
                 "online": pod.online(),
                 "state": state["state"],
                 "session_id": pod.session_id,
+                # For the OLED preview on /host: what the pod screen shows.
+                "session_status": session["status"] if session else None,
+                "session_created_at": session["created_at"] if session else None,
             }
         )
     sessions = []
@@ -163,6 +170,15 @@ async def host_qr(session_id: str, request: Request):
         raise HTTPException(status_code=404, detail="unknown session")
     matrix = qr_modules(join_url(hub.config, session_id))
     return Response(content=_svg(matrix), media_type="image/svg+xml")
+
+
+@router.get("/host/qr/{session_id}.bin")
+async def host_qr_modules(session_id: str, request: Request):
+    """Same bytes as GET /pods/{id}/qr, by session, for the OLED preview on /host."""
+    hub = request.app.state.hub
+    if hub.storage.get_session(session_id) is None:
+        raise HTTPException(status_code=404, detail="unknown session")
+    return Response(content=qr_bytes(join_url(hub.config, session_id)), media_type="application/octet-stream")
 
 
 @router.post("/host/pods/{pod_id}/approve")
