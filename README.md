@@ -14,6 +14,8 @@ Kinig is an offline meeting pod. A small recorder sends audio to a laptop on the
 
 No ESP32 at hand? `python scripts/fake_esp32.py --file meeting.wav` (or `--mic`) runs the same steps from a terminal.
 
+To see the web UI with no hardware and no models: `python scripts/mock_demo.py` (fake pods, fake viewers, canned notes, port 8080). Add `--auto` to watch the whole flow play by itself on a loop.
+
 Pairing and approval show the flow. They are not security: there is no key exchange, and everything is plain HTTP on the local Wi-Fi.
 
 The shipped model settings fit an 8 GB laptop: Whisper `base`, and Ollama `llama3.2:1b` with a rule-based fallback if Ollama does not answer.
