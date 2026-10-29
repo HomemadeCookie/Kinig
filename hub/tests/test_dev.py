@@ -173,3 +173,14 @@ def test_worker_reload_swaps_the_names_it_reports():
     assert worker.transcriber_name == "next-t"
     assert worker.summarizer_name == "next-s"
     assert worker.snapshot("missing")["transcriber"] == "next-t"
+
+
+def test_pod_network_address_wins_over_the_default_route(monkeypatch):
+    import kinig_hub.config as config
+
+    routes = {"192.168.4.1": "192.168.4.2", "192.0.2.1": "10.11.116.156"}
+    monkeypatch.setattr(config, "source_ip_for", lambda dest: routes[dest])
+    assert config.detect_lan_ip() == "192.168.4.2"
+
+    routes["192.168.4.1"] = "10.11.116.156"  # not on the pod network
+    assert config.detect_lan_ip() == "10.11.116.156"

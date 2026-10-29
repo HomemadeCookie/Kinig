@@ -5,7 +5,8 @@
   come with the ESP32 core.
 
   The pod is a remote microphone. The hub laptop decides everything:
-    1. Join Wi-Fi, find the hub by mDNS (or KINIG_HUB_HOST in config.h).
+    1. Start its own Wi-Fi (Kinig-Pod). The hub laptop and phones join it.
+       Find the hub by mDNS, or by asking each connected device.
     2. POST /pods/hello, show the 4-digit pairing code.
     3. Poll GET /pods/{id}. The host approves the code on /host.
     4. "record": stream chunk_ms of audio per POST /sessions/{id}/audio,
@@ -15,7 +16,7 @@
   The QR comes from the hub as raw modules (GET /pods/{id}/qr), so the pod
   needs no QR library.
 
-  Edit config.h for Wi-Fi. Serial Monitor: 115200 baud.
+  Network name is in config.h. Serial Monitor: 115200 baud.
 */
 
 #include <Arduino.h>
@@ -23,7 +24,8 @@
 #include <ESP_I2S.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
-#include <WiFiMulti.h>
+#include <esp_netif.h>
+#include <esp_wifi.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -33,8 +35,7 @@
 // 100 kHz for both Wire and the SSD1306 transfers, as in the tested sketch.
 Adafruit_SSD1306 oled(128, 64, &Wire, -1, 100000UL, 100000UL);
 I2SClass microphone;
-WiFiMulti wifiMulti;
-bool wifiListed = false;
+bool apReady = false;
 bool oledReady = false;
 bool micReady = false;
 
@@ -308,32 +309,47 @@ void stopStreaming() {
 
 // ------------------------------------------------------------ hub calls
 
-bool connectWifi() {
-  if (String(KINIG_WIFI_SSID) == "TBD") {
-    showText("Setup", "Set Wi-Fi in", "config.h");
+bool startAccessPoint() {
+  WiFi.mode(WIFI_AP);
+  WiFi.setSleep(false);  // steadier uploads
+  const char* password = strlen(KINIG_AP_PASSWORD) >= 8 ? KINIG_AP_PASSWORD : nullptr;
+  if (!WiFi.softAP(KINIG_AP_SSID, password, KINIG_AP_CHANNEL, 0, KINIG_AP_MAX_CLIENTS)) {
+    showText("Error", "Wi-Fi did not", "start");
     delay(2000);
     return false;
   }
-  showText("Wi-Fi", "Connecting", "");
-  if (!wifiListed) {
-    WiFi.mode(WIFI_STA);
-    WiFi.setSleep(false);  // steadier uploads
-    wifiMulti.addAP(KINIG_WIFI_SSID, KINIG_WIFI_PASSWORD);
-#ifdef KINIG_WIFI_SSID_2
-    wifiMulti.addAP(KINIG_WIFI_SSID_2, KINIG_WIFI_PASSWORD_2);
-#endif
-    wifiListed = true;
-  }
-  if (wifiMulti.run(15000) != WL_CONNECTED) {
-    showText("No Wi-Fi", "Retrying", KINIG_WIFI_SSID);
-    return false;
-  }
-  Serial.print("Joined ");
-  Serial.print(WiFi.SSID());
-  Serial.print(", pod IP ");
-  Serial.println(WiFi.localIP());
+  Serial.print("Wi-Fi ");
+  Serial.print(KINIG_AP_SSID);
+  Serial.print(" is up. Pod IP ");
+  Serial.println(WiFi.softAPIP());
   MDNS.begin("kinig-pod");
   return true;
+}
+
+// A device on our Wi-Fi that answers GET /host/state on the hub port is the hub.
+bool probeConnectedDevices() {
+  wifi_sta_list_t stations = {};
+  if (esp_wifi_ap_get_sta_list(&stations) != ESP_OK || stations.num == 0) return false;
+  esp_netif_pair_mac_ip_t pairs[ESP_WIFI_MAX_CONN_NUM] = {};
+  int count = min((int)stations.num, (int)ESP_WIFI_MAX_CONN_NUM);
+  for (int i = 0; i < count; i++) memcpy(pairs[i].mac, stations.sta[i].mac, 6);
+  esp_netif_t* ap = esp_netif_get_handle_from_ifkey("WIFI_AP_DEF");
+  if (ap == nullptr || esp_netif_dhcps_get_clients_by_mac(ap, count, pairs) != ESP_OK) return false;
+  for (int i = 0; i < count; i++) {
+    if (pairs[i].ip.addr == 0) continue;
+    String base = "http://" + IPAddress(pairs[i].ip.addr).toString() + ":" + String(KINIG_HUB_PORT);
+    HTTPClient http;
+    http.setConnectTimeout(800);
+    http.setTimeout(800);
+    http.begin(base + "/host/state");
+    int code = http.GET();
+    http.end();
+    if (code == 200) {
+      hubBase = base;
+      return true;
+    }
+  }
+  return false;
 }
 
 bool findHub() {
@@ -341,14 +357,21 @@ bool findHub() {
     hubBase = String("http://") + KINIG_HUB_HOST + ":" + String(KINIG_HUB_PORT);
     return true;
   }
-  showText("Finding", "Looking for the", "hub (mDNS)");
+  int devices = WiFi.softAPgetStationNum();
+  if (devices == 0) {
+    showText("Join Wi-Fi", "On the laptop:", KINIG_AP_SSID);
+    delay(500);
+    return false;
+  }
+  showText("Finding", "Looking for", "the hub");
   int found = MDNS.queryService("kinig", "tcp");
-  if (found <= 0) {
-    showText("No hub", "Start the hub on", "the laptop");
+  if (found > 0) {
+    hubBase = "http://" + MDNS.address(0).toString() + ":" + String(MDNS.port(0));
+  } else if (!probeConnectedDevices()) {
+    showText("No hub", "Run the hub on", "the laptop");
     delay(1500);
     return false;
   }
-  hubBase = "http://" + MDNS.address(0).toString() + ":" + String(MDNS.port(0));
   Serial.println("Hub found at " + hubBase);
   return true;
 }
@@ -442,7 +465,7 @@ void handleState(const String& body) {
       }
     }
     ensureQr(id);
-    showQr("REC", clock(millis() - recordStartMs), "Scan: join");
+    showQr("REC " + clock(millis() - recordStartMs), "Wi-Fi:", KINIG_AP_SSID);
   } else if (state == "stop") {
     showText("Stopping", "Sending the", "last audio");
     if (streaming()) stopStreaming();
@@ -453,7 +476,8 @@ void handleState(const String& body) {
     String status;
     jsonString(body, "status", status);
     ensureQr(id);
-    showQr("Scan for", "notes", status.substring(0, 10));
+    String label = status == "done" ? "Notes ok" : status == "error" ? "Error" : "Working";
+    showQr(label, "Wi-Fi:", KINIG_AP_SSID);
   }
 }
 
@@ -507,11 +531,8 @@ void setup() {
 }
 
 void loop() {
-  if (WiFi.status() != WL_CONNECTED) {
-    if (streaming()) stopStreaming();
-    hubBase = "";
-    podId = "";
-    connectWifi();
+  if (!apReady) {
+    apReady = startAccessPoint();
     return;
   }
   if (hubBase.isEmpty()) {

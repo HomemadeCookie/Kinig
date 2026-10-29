@@ -81,26 +81,41 @@ def resolved_public_host(hub_settings: dict) -> str:
     return detect_lan_ip()
 
 
+# The pod's own Wi-Fi (Kinig-Pod) hands out 192.168.4.x with the pod at .1.
+POD_NETWORK_GATEWAY = "192.168.4.1"
+POD_NETWORK_PREFIX = "192.168.4."
+
+
 def detect_lan_ip() -> str:
     """Best-effort LAN address. No packet is sent and nothing is downloaded.
 
-    Connecting a UDP socket makes the OS fill in the source address of the
-    default route. 192.0.2.1 is a documentation address, not a server we contact.
+    Connecting a UDP socket makes the OS fill in the source address it would
+    use for that destination. If this laptop is on the pod's Wi-Fi, that
+    address wins, even when ethernet or another Wi-Fi holds the default route.
+    Otherwise the default route's address is used. 192.0.2.1 is a
+    documentation address, not a server we contact.
     """
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        sock.connect(("192.0.2.1", 9))
-        ip = sock.getsockname()[0]
-    except OSError:
-        ip = "127.0.0.1"
-    finally:
-        sock.close()
+    pod_side = source_ip_for(POD_NETWORK_GATEWAY)
+    if pod_side.startswith(POD_NETWORK_PREFIX):
+        return pod_side
+    ip = source_ip_for("192.0.2.1")
     if ip.startswith("127."):
         log.warning(
             "No LAN address detected. Phones cannot open 127.0.0.1. "
             "Set public_host in hub/config/hub.toml to this laptop's IP."
         )
     return ip
+
+
+def source_ip_for(destination: str) -> str:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect((destination, 9))
+        return sock.getsockname()[0]
+    except OSError:
+        return "127.0.0.1"
+    finally:
+        sock.close()
 
 
 def _read_toml(path: Path) -> dict:

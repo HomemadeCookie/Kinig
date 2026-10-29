@@ -2,25 +2,18 @@
 
 #include <stdint.h>
 
-// Wi-Fi goes in secrets.h. Everything else comes from the hub.
+// Network settings live here. Everything else comes from the hub.
 
-// The pocket router (or phone hotspot) the hub laptop is also on.
-// Put the real values in secrets.h next to this file (gitignored):
-//   #define KINIG_WIFI_SSID "name"
-//   #define KINIG_WIFI_PASSWORD "password"
-//   #define KINIG_WIFI_SSID_2 "phone hotspot"      (optional backup network)
-//   #define KINIG_WIFI_PASSWORD_2 "password"
-// The pod joins whichever listed network is in range (2.4 GHz only).
-#if __has_include("secrets.h")
-#include "secrets.h"
-#endif
-#ifndef KINIG_WIFI_SSID
-#define KINIG_WIFI_SSID "TBD"
-#define KINIG_WIFI_PASSWORD "TBD"
-#endif
+// The pod hosts its own Wi-Fi. The hub laptop and the phones join it.
+// No router or campus Wi-Fi is involved. Open network: no password to type.
+// The pod is at 192.168.4.1; the laptop usually gets 192.168.4.2.
+#define KINIG_AP_SSID "Kinig-Pod"
+#define KINIG_AP_PASSWORD ""      // 8+ characters for WPA2, or "" for open
+constexpr int KINIG_AP_CHANNEL = 6;
+constexpr int KINIG_AP_MAX_CLIENTS = 8;  // laptop + phones; the ESP32 allows up to 10
 
-// Leave empty to find the hub by mDNS (_kinig._tcp, announced by the hub at
-// startup). Set the laptop's IP, e.g. "192.168.4.2", only if mDNS is blocked.
+// Leave empty to find the hub automatically: mDNS (_kinig._tcp, announced by
+// the hub), then each device on the pod's Wi-Fi. Set an IP only to force one.
 #define KINIG_HUB_HOST ""
 #define KINIG_HUB_PORT 8000
 
