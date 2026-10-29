@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Join Kinig notes</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0 auto;
+      max-width: 28rem;
+      padding: 1.25rem;
+      line-height: 1.45;
+      color: #1a1a1a;
+      background: #f7f4ef;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+    label { display: block; margin: 1rem 0 0.3rem; font-weight: bold; }
+    input { font-size: 1.1rem; padding: 0.55rem; width: 100%; box-sizing: border-box; }
+    button { font-size: 1.1rem; padding: 0.6rem 1.2rem; margin-top: 0.9rem; width: 100%; }
+    .muted { color: #555; }
+  </style>
+</head>
+<body>
+  <h1>Kinig notes</h1>
+  <p class="muted">Session [[code]]. The host approves each person before the notes open.</p>
+  <form method="post">
+    <label for="name">Your name</label>
+    <input id="name" name="name" maxlength="40" autocomplete="name" autofocus required>
+    <button type="submit">Ask for the notes</button>
+  </form>
+</body>
+</html>

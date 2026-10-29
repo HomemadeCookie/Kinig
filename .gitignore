@@ -18,3 +18,6 @@ __pycache__/
 # Session database (SQLite, Phase 2) and bench/session spreadsheets.
 *.db
 experiments/*.csv
+
+# Pod Wi-Fi credentials. See firmware/kinig_pod/config.h.
+firmware/kinig_pod/secrets.h

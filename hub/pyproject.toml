@@ -12,6 +12,7 @@ dependencies = [
     "av>=12",
     "sounddevice>=0.5",
     "python-multipart>=0.0.9",
+    "zeroconf>=0.132",
 ]
 
 [project.optional-dependencies]

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kinig host</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0 auto;
+      max-width: 52rem;
+      padding: 1.25rem;
+      line-height: 1.45;
+      color: #1a1a1a;
+      background: #f7f4ef;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+    h2 { font-size: 1.15rem; margin: 1.6rem 0 0.5rem; }
+    .card { background: #fff; border: 1px solid #ccc; padding: 0.9rem; margin-bottom: 0.8rem; }
+    .row { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    .grow { flex: 1; min-width: 12rem; }
+    .code { font-size: 2.2rem; font-weight: bold; letter-spacing: 0.25rem; }
+    .tag { display: inline-block; padding: 0.05rem 0.45rem; border: 1px solid #999; font-size: 0.85rem; }
+    .online { color: #1d6b2f; }
+    .offline { color: #8a1f1f; }
+    .rec { color: #b3261e; font-weight: bold; }
+    button { font-size: 1rem; padding: 0.45rem 0.9rem; margin: 0.15rem 0.3rem 0.15rem 0; }
+    button.primary { font-size: 1.15rem; padding: 0.6rem 1.4rem; }
+    img.qr { width: 150px; height: 150px; background: #fff; }
+    ul { margin: 0.3rem 0; padding-left: 1.2rem; }
+    .muted { color: #555; }
+    #error:empty { display: none; }
+    #error { color: #8a1f1f; }
+  </style>
+</head>
+<body>
+  <h1>Kinig host</h1>
+  <p class="muted">Pair pods, start and stop recordings, and approve who gets the notes.</p>
+  <p id="error"></p>
+
+  <h2>Pods</h2>
+  <div id="pods"><p class="muted">No pod has connected yet. Power one on near this Wi-Fi.</p></div>
+
+  <h2>Recent sessions</h2>
+  <div id="sessions"><p class="muted">No sessions yet.</p></div>
+
+  <script>
+    // Same origin, no CDN. Redraw from /host/state once a second.
+    const podsBox = document.getElementById("pods");
+    const sessionsBox = document.getElementById("sessions");
+    const errorBox = document.getElementById("error");
+
+    function el(tag, attrs, children) {
+      const node = document.createElement(tag);
+      for (const [key, value] of Object.entries(attrs || {})) {
+        if (key === "text") node.textContent = value;
+        else if (key === "onclick") node.addEventListener("click", value);
+        else node.setAttribute(key, value);
+      }
+      for (const child of children || []) node.appendChild(child);
+      return node;
+    }
+
+    async function act(url, body) {
+      errorBox.textContent = "";
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body || {}),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        errorBox.textContent = data.detail || ("Request failed: " + response.status);
+      }
+      refresh();
+    }
+
+    function button(label, url, opts) {
+      const attrs = { type: "button", text: label, onclick: () => act(url, opts && opts.body ? opts.body() : null) };
+      if (opts && opts.primary) attrs.class = "primary";
+      return el("button", attrs);
+    }
+
+    function podCard(pod) {
+      const base = "/host/pods/" + pod.pod_id;
+      const presence = el("span", {
+        class: pod.online ? "online" : "offline",
+        text: pod.online ? "● online" : "● offline",
+      });
+      const head = el("div", {}, [
+        el("strong", { text: pod.label + " " }),
+        presence,
+        el("span", { text: " " }),
+        el("span", { class: "tag", text: pod.state }),
+      ]);
+      const body = el("div", { class: "grow" }, [head]);
+      const side = [];
+
+      if (pod.state === "pairing") {
+        body.appendChild(el("p", { text: "Check that the pod screen shows this code, then approve." }));
+        body.appendChild(el("div", { class: "code", text: pod.code }));
+        body.appendChild(button("Approve pod", base + "/approve", { primary: true }));
+        body.appendChild(button("Forget", base + "/forget"));
+      } else if (pod.state === "ready") {
+        const live = el("input", { type: "checkbox", id: "live-" + pod.pod_id });
+        if (liveChoice[pod.pod_id]) live.checked = true;
+        live.addEventListener("change", () => { liveChoice[pod.pod_id] = live.checked; });
+        body.appendChild(el("p", {}, [
+          el("label", {}, [live, el("span", { text: " Live transcript while recording" })]),
+        ]));
+        body.appendChild(button("Start recording", base + "/start", {
+          primary: true,
+          body: () => ({ mode: liveChoice[pod.pod_id] ? "live" : "end" }),
+        }));
+        body.appendChild(button("Forget", base + "/forget"));
+      } else if (pod.state === "record") {
+        body.appendChild(el("p", { class: "rec", text: "● Recording" }));
+        body.appendChild(button("Stop recording", base + "/stop", { primary: true }));
+        side.push(qrImage(pod.session_id));
+      } else if (pod.state === "stop") {
+        body.appendChild(el("p", { text: "Stopping. The pod is sending its last audio." }));
+        body.appendChild(button("Force stop", base + "/stop"));
+        side.push(qrImage(pod.session_id));
+      } else if (pod.state === "show_qr") {
+        body.appendChild(el("p", { text: "Pod is showing the join QR. Approve viewers below." }));
+        body.appendChild(button("Done, back to ready", base + "/clear", { primary: true }));
+        side.push(qrImage(pod.session_id));
+      }
+      if (!pod.online && pod.state !== "pairing" && pod.state !== "ready") {
+        body.appendChild(button("Forget", base + "/forget"));
+      }
+      return el("div", { class: "card" }, [el("div", { class: "row" }, [body, ...side])]);
+    }
+
+    function localTime(sqliteUtc) {
+      // SQLite CURRENT_TIMESTAMP is UTC with a space instead of the T.
+      const when = new Date(sqliteUtc.replace(" ", "T") + "Z");
+      return isNaN(when) ? sqliteUtc : when.toLocaleString();
+    }
+
+    function qrImage(sessionId) {
+      return el("img", { class: "qr", alt: "Join QR", src: "/host/qr/" + sessionId + ".svg" });
+    }
+
+    function sessionCard(session) {
+      const pending = session.viewers.filter((v) => v.status === "pending");
+      const decided = session.viewers.filter((v) => v.status !== "pending");
+      const body = el("div", { class: "grow" }, [
+        el("div", {}, [
+          el("strong", { text: "Session " + session.session_id.slice(0, 8) + " " }),
+          el("span", { class: "tag", text: session.status }),
+          el("span", { class: "muted", text: "  " + session.client + " · " + localTime(session.created_at) }),
+        ]),
+        el("p", {}, [
+          el("a", { href: session.notes_path, target: "_blank", text: "Open notes" }),
+          el("span", { class: "muted", text: "  ·  join: " + session.join_url }),
+        ]),
+      ]);
+      if (pending.length) {
+        body.appendChild(el("div", { text: "Waiting for approval:" }));
+        const list = el("ul");
+        for (const viewer of pending) {
+          const base = "/host/viewers/" + viewer.viewer_id;
+          list.appendChild(el("li", {}, [
+            el("strong", { text: viewer.name + " " }),
+            button("Approve", base + "/approve"),
+            button("Deny", base + "/deny"),
+          ]));
+        }
+        body.appendChild(list);
+        if (pending.length > 1) {
+          body.appendChild(el("button", {
+            type: "button",
+            text: "Approve all " + pending.length,
+            onclick: async () => {
+              for (const viewer of pending) await act("/host/viewers/" + viewer.viewer_id + "/approve");
+            },
+          }));
+        }
+      }
+      if (decided.length) {
+        body.appendChild(el("div", {
+          class: "muted",
+          text: decided.map((v) => v.name + " (" + v.status + ")").join(", "),
+        }));
+      }
+      return el("div", { class: "card" }, [body]);
+    }
+
+    const liveChoice = {};
+
+    async function refresh() {
+      try {
+        const response = await fetch("/host/state");
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.pods.length) podsBox.replaceChildren(...data.pods.map(podCard));
+        if (data.sessions.length) sessionsBox.replaceChildren(...data.sessions.map(sessionCard));
+      } catch (err) {
+        errorBox.textContent = "Cannot reach the hub.";
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 1000);
+  </script>
+</body>
+</html>
