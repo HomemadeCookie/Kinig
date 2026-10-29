@@ -238,6 +238,8 @@ pio run -t upload
 pio device monitor
 ```
 
+Hardware test sketches, starting with Niccolo Coronel's INMP441 + OLED test that this firmware's pins and I2S setup come from, are in [KazeFreeze/kinig-esp32-firmware](https://github.com/KazeFreeze/kinig-esp32-firmware) (private).
+
 The pod compiles with Arduino-ESP32 3.3 (pioarduino 55.03.312-1). The I2S and OLED setup is the one from the tested `KinigMicOLED_Fixed.ino`. The full pod has not yet run on the board end to end.
 
 ## 9. What is stored
