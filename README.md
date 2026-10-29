@@ -207,6 +207,14 @@ Windows: `hub\.venv\Scripts\python -m pytest -q hub\tests`
 
 `firmware/kinig_pod/kinig_pod.ino` is the pod: ESP32 Dev Module, INMP441 mic, SSD1306 128x64 OLED. Wiring is in `hardware/wiring.md`. Create `firmware/kinig_pod/secrets.h` (gitignored) with `#define KINIG_WIFI_SSID "..."` and `#define KINIG_WIFI_PASSWORD "..."`. The hub address is found by mDNS.
 
+One command (Linux), with the pod plugged in by USB:
+
+```bash
+bash scripts/flash_pod.sh
+```
+
+It installs PlatformIO if needed, asks for the Wi-Fi (or copies a saved one with `--from-nm "Name"`), finds the port, and flashes. `--monitor` opens the serial log after.
+
 Arduino IDE:
 
 1. Boards Manager: install **esp32 by Espressif Systems**, version 3.x.
