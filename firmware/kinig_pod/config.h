@@ -8,6 +8,9 @@
 // Put the real values in secrets.h next to this file (gitignored):
 //   #define KINIG_WIFI_SSID "name"
 //   #define KINIG_WIFI_PASSWORD "password"
+//   #define KINIG_WIFI_SSID_2 "phone hotspot"      (optional backup network)
+//   #define KINIG_WIFI_PASSWORD_2 "password"
+// The pod joins whichever listed network is in range (2.4 GHz only).
 #if __has_include("secrets.h")
 #include "secrets.h"
 #endif
