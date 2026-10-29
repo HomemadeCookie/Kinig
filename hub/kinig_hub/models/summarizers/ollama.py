@@ -85,8 +85,21 @@ class OllamaSummarizer(Summarizer):
                 "models.toml is missing summarizer.options.model "
                 '(for example model = "llama3.2:3b").'
             )
-        host = str(self.options.get("host", DEFAULT_HOST)).rstrip("/")
         body = json.dumps(self.request_body(model, transcript)).encode("utf-8")
+        # Small models sometimes drop a key from the JSON. One retry fixes
+        # most of those before the registry falls back to rule_based.
+        last_error: ValueError | None = None
+        for _attempt in range(2):
+            try:
+                return parse_summary_json(self.generate(body))
+            except ValueError as exc:
+                last_error = exc
+        assert last_error is not None
+        raise last_error
+
+    def generate(self, body: bytes) -> str:
+        """POST one request to Ollama and return the reply text."""
+        host = str(self.options.get("host", DEFAULT_HOST)).rstrip("/")
         request = urllib.request.Request(
             f"{host}/api/generate",
             data=body,
@@ -105,7 +118,7 @@ class OllamaSummarizer(Summarizer):
         text = payload.get("response")
         if not isinstance(text, str):
             raise RuntimeError("Ollama's reply had no text in 'response'.")
-        return parse_summary_json(text)
+        return text
 
     @staticmethod
     def check_ready(options: dict) -> tuple[bool, str]:

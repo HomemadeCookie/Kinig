@@ -374,3 +374,16 @@ def test_ollama_request_raises_context_only_when_configured():
     roomy = OllamaSummarizer({"model": "m", "num_ctx": 16384})
     roomy.prompt = "Summarize."
     assert roomy.request_body("m", "hello")["options"] == {"num_ctx": 16384}
+
+
+def test_ollama_retries_once_when_a_key_is_missing():
+    from kinig_hub.models.summarizers.ollama import OllamaSummarizer
+
+    replies = iter([
+        '{"summary": "s", "key_points": []}',
+        '{"summary": "s", "key_points": ["k"], "action_items": ["a"]}',
+    ])
+    summarizer = OllamaSummarizer({"model": "m"})
+    summarizer.prompt = "Summarize."
+    summarizer.generate = lambda body: next(replies)
+    assert summarizer.summarize("hello")["action_items"] == ["a"]
