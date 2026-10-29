@@ -61,6 +61,21 @@ class OllamaSummarizer(Summarizer):
         instructions = self.prompt.replace("{output_language}", language).rstrip()
         return f"{instructions}\n\nTranscript:\n{transcript}"
 
+    def request_body(self, model: str, transcript: str) -> dict:
+        body = {
+            "model": model,
+            "prompt": self.build_prompt(transcript),
+            "stream": False,
+            # Ask Ollama to emit JSON instead of a free-form paragraph.
+            "format": "json",
+        }
+        # Ollama's default context (4096 tokens) cuts off a long lecture.
+        # num_ctx in [summarizer.options] raises it.
+        num_ctx = self.options.get("num_ctx")
+        if num_ctx:
+            body["options"] = {"num_ctx": int(num_ctx)}
+        return body
+
     def summarize(self, transcript: str) -> dict:
         if not self.prompt:
             self.load()
@@ -70,16 +85,21 @@ class OllamaSummarizer(Summarizer):
                 "models.toml is missing summarizer.options.model "
                 '(for example model = "llama3.2:3b").'
             )
+        body = json.dumps(self.request_body(model, transcript)).encode("utf-8")
+        # Small models sometimes drop a key from the JSON. One retry fixes
+        # most of those before the registry falls back to rule_based.
+        last_error: ValueError | None = None
+        for _attempt in range(2):
+            try:
+                return parse_summary_json(self.generate(body))
+            except ValueError as exc:
+                last_error = exc
+        assert last_error is not None
+        raise last_error
+
+    def generate(self, body: bytes) -> str:
+        """POST one request to Ollama and return the reply text."""
         host = str(self.options.get("host", DEFAULT_HOST)).rstrip("/")
-        body = json.dumps(
-            {
-                "model": model,
-                "prompt": self.build_prompt(transcript),
-                "stream": False,
-                # Ask Ollama to emit JSON instead of a free-form paragraph.
-                "format": "json",
-            }
-        ).encode("utf-8")
         request = urllib.request.Request(
             f"{host}/api/generate",
             data=body,
@@ -98,7 +118,7 @@ class OllamaSummarizer(Summarizer):
         text = payload.get("response")
         if not isinstance(text, str):
             raise RuntimeError("Ollama's reply had no text in 'response'.")
-        return parse_summary_json(text)
+        return text
 
     @staticmethod
     def check_ready(options: dict) -> tuple[bool, str]:
