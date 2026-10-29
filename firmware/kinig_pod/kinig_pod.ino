@@ -23,6 +23,7 @@
 #include <ESP_I2S.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
+#include <WiFiMulti.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -32,6 +33,8 @@
 // 100 kHz for both Wire and the SSD1306 transfers, as in the tested sketch.
 Adafruit_SSD1306 oled(128, 64, &Wire, -1, 100000UL, 100000UL);
 I2SClass microphone;
+WiFiMulti wifiMulti;
+bool wifiListed = false;
 bool oledReady = false;
 bool micReady = false;
 
@@ -311,16 +314,23 @@ bool connectWifi() {
     delay(2000);
     return false;
   }
-  showText("Wi-Fi", "Connecting to", KINIG_WIFI_SSID);
-  WiFi.mode(WIFI_STA);
-  WiFi.setSleep(false);  // steadier uploads
-  WiFi.begin(KINIG_WIFI_SSID, KINIG_WIFI_PASSWORD);
-  for (int i = 0; i < 60 && WiFi.status() != WL_CONNECTED; i++) delay(250);
-  if (WiFi.status() != WL_CONNECTED) {
+  showText("Wi-Fi", "Connecting", "");
+  if (!wifiListed) {
+    WiFi.mode(WIFI_STA);
+    WiFi.setSleep(false);  // steadier uploads
+    wifiMulti.addAP(KINIG_WIFI_SSID, KINIG_WIFI_PASSWORD);
+#ifdef KINIG_WIFI_SSID_2
+    wifiMulti.addAP(KINIG_WIFI_SSID_2, KINIG_WIFI_PASSWORD_2);
+#endif
+    wifiListed = true;
+  }
+  if (wifiMulti.run(15000) != WL_CONNECTED) {
     showText("No Wi-Fi", "Retrying", KINIG_WIFI_SSID);
     return false;
   }
-  Serial.print("Pod IP ");
+  Serial.print("Joined ");
+  Serial.print(WiFi.SSID());
+  Serial.print(", pod IP ");
   Serial.println(WiFi.localIP());
   MDNS.begin("kinig-pod");
   return true;
