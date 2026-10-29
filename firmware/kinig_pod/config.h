@@ -2,11 +2,19 @@
 
 #include <stdint.h>
 
-// Edit this file only. Everything else comes from the hub.
+// Wi-Fi goes in secrets.h. Everything else comes from the hub.
 
 // The pocket router (or phone hotspot) the hub laptop is also on.
+// Put the real values in secrets.h next to this file (gitignored):
+//   #define KINIG_WIFI_SSID "name"
+//   #define KINIG_WIFI_PASSWORD "password"
+#if __has_include("secrets.h")
+#include "secrets.h"
+#endif
+#ifndef KINIG_WIFI_SSID
 #define KINIG_WIFI_SSID "TBD"
 #define KINIG_WIFI_PASSWORD "TBD"
+#endif
 
 // Leave empty to find the hub by mDNS (_kinig._tcp, announced by the hub at
 // startup). Set the laptop's IP, e.g. "192.168.4.2", only if mDNS is blocked.

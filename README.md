@@ -205,7 +205,7 @@ Windows: `hub\.venv\Scripts\python -m pytest -q hub\tests`
 
 ## 8. Firmware
 
-`firmware/kinig_pod/kinig_pod.ino` is the pod: ESP32 Dev Module, INMP441 mic, SSD1306 128x64 OLED. Wiring is in `hardware/wiring.md`. Edit only `firmware/kinig_pod/config.h`: the Wi-Fi name and password. The hub address is found by mDNS.
+`firmware/kinig_pod/kinig_pod.ino` is the pod: ESP32 Dev Module, INMP441 mic, SSD1306 128x64 OLED. Wiring is in `hardware/wiring.md`. Create `firmware/kinig_pod/secrets.h` (gitignored) with `#define KINIG_WIFI_SSID "..."` and `#define KINIG_WIFI_PASSWORD "..."`. The hub address is found by mDNS.
 
 Arduino IDE:
 
