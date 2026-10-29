@@ -78,6 +78,10 @@ python scripts/download_models.py
 
 ### Windows
 
+Double-click `scripts\setup.bat`. It finds Python 3.11+, creates `hub\.venv`, installs the hub, installs Ollama with winget and pulls the model, downloads Whisper, and opens the firewall (TCP 8000, UDP 5353; asks for admin once). Then join Kinig-Pod and double-click `scripts\run_hub.bat`.
+
+By hand:
+
 ```bat
 py -3.11 -m venv hub\.venv
 hub\.venv\Scripts\activate

@@ -6,7 +6,7 @@
 
   The pod is a remote microphone. The hub laptop decides everything:
     1. Start its own Wi-Fi (Kinig-Pod). The hub laptop and phones join it.
-       Find the hub by mDNS, or by asking each connected device.
+       Find the hub by asking each connected device, then by mDNS.
     2. POST /pods/hello, show the 4-digit pairing code.
     3. Poll GET /pods/{id}. The host approves the code on /host.
     4. "record": stream chunk_ms of audio per POST /sessions/{id}/audio,
@@ -364,13 +364,16 @@ bool findHub() {
     return false;
   }
   showText("Finding", "Looking for", "the hub");
-  int found = MDNS.queryService("kinig", "tcp");
-  if (found > 0) {
+  // Ask the devices on our own Wi-Fi first. That answer is always current.
+  // mDNS can return an old address if the hub started on another network.
+  if (!probeConnectedDevices()) {
+    int found = MDNS.queryService("kinig", "tcp");
+    if (found <= 0) {
+      showText("No hub", "Run the hub on", "the laptop");
+      delay(1500);
+      return false;
+    }
     hubBase = "http://" + MDNS.address(0).toString() + ":" + String(MDNS.port(0));
-  } else if (!probeConnectedDevices()) {
-    showText("No hub", "Run the hub on", "the laptop");
-    delay(1500);
-    return false;
   }
   Serial.println("Hub found at " + hubBase);
   return true;
