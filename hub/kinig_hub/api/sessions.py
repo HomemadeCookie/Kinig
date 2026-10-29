@@ -32,7 +32,12 @@ def notes_url(config, session_id: str, token: str) -> str:
     """
     host = resolved_public_host(config.hub)
     port = int(config.hub["http_port"])
-    return f"http://{host}:{port}/s/{session_id}?t={quote(token, safe='')}"
+    return f"http://{host}:{port}{notes_path(session_id, token)}"
+
+
+def notes_path(session_id: str, token: str) -> str:
+    """Same page as notes_url, relative, for pages already served by the hub."""
+    return f"/s/{session_id}?t={quote(token, safe='')}"
 
 
 def refine_client(declared: str, host: str | None) -> str:

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Waiting for the host</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0 auto;
+      max-width: 28rem;
+      padding: 1.25rem;
+      line-height: 1.45;
+      color: #1a1a1a;
+      background: #f7f4ef;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 0.2rem; }
+    #message { font-size: 1.15rem; }
+    .denied { color: #8a1f1f; }
+  </style>
+</head>
+<body>
+  <h1>Kinig notes</h1>
+  <p>Hi, [[name]].</p>
+  <p id="message">Waiting for the host to approve you…</p>
+  <script>
+    // Same origin. Poll until the host decides, then open the notes page.
+    const stateUrl = "[[state_url]]";
+
+    async function poll() {
+      try {
+        const response = await fetch(stateUrl);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.status === "approved" && data.notes_path) {
+            window.location.replace(data.notes_path);
+            return;
+          }
+          if (data.status === "denied") {
+            const message = document.getElementById("message");
+            message.textContent = "The host did not approve this request.";
+            message.className = "denied";
+            return;
+          }
+        }
+      } catch (err) {
+        // Keep waiting if the hub blips.
+      }
+      setTimeout(poll, 1500);
+    }
+
+    poll();
+  </script>
+</body>
+</html>

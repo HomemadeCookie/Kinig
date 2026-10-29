@@ -1,17 +1,18 @@
 # Wiring
 
-No board is wired yet. Every pin in `firmware/include/config.h` is `-1` (TBD).
+From the tested mic + OLED sketch (`KinigMicOLED_Fixed.ino`, 2026-10-29). The pins are in `firmware/kinig_pod/config.h`.
 
-Do not copy pin numbers from a different microphone board into the firmware until this table is filled in from the real PCB.
-
-| Signal | Pin | Notes |
+| Part | Signal | ESP32 pin |
 |---|---|---|
-| Mic SCK | TBD | I2S bit clock |
-| Mic WS | TBD | I2S word select |
-| Mic SD | TBD | I2S data in |
-| Button | TBD | Active low, with the internal pull-up |
-| LED | TBD | On when the pin is high |
-| LCD | TBD | Bus (SPI or I2C) and pins are not chosen. The firmware prints the QR on the serial monitor until a panel is known. |
-| Power | TBD | |
+| SSD1306 OLED 128x64 (I2C, 0x3C) | VCC | 3V3 |
+| | GND | GND |
+| | SDA | GPIO21 |
+| | SCL | GPIO22 |
+| INMP441 mic (I2S) | VDD | 3V3 |
+| | GND | GND |
+| | SCK | GPIO26 |
+| | WS | GPIO25 |
+| | SD | GPIO33 |
+| | L/R | GND (left slot) |
 
-Until the button pin is set, type `s` in the serial monitor to press the button.
+The pod has no button. Start and Stop are on the hub's `/host` page.

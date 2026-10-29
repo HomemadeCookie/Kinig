@@ -2,6 +2,20 @@
 
 Kinig is an offline meeting pod. A small recorder sends audio to a laptop on the same Wi-Fi. The laptop transcribes it, writes notes, deletes the audio, and shows the notes behind a QR code.
 
+## Demo flow
+
+1. Start the hub on the laptop (`bash scripts/run_hub.sh`) and open `http://127.0.0.1:8000/host`.
+2. Power the pod. It joins Wi-Fi, finds the hub by mDNS, and shows a 4-digit code.
+3. On `/host`, check the code matches and press **Approve pod**.
+4. Press **Start recording**. The pod streams audio and shows a join QR.
+5. People scan the QR, type a name, and wait. Approve them on `/host`.
+6. Press **Stop recording**. Approved phones open the notes when they are ready.
+7. Press **Done, back to ready** for the next meeting.
+
+No ESP32 at hand? `python scripts/fake_esp32.py --file meeting.wav` (or `--mic`) runs the same steps from a terminal.
+
+Pairing and approval show the flow. They are not security: there is no key exchange, and everything is plain HTTP on the local Wi-Fi.
+
 The shipped model settings fit an 8 GB laptop: Whisper `base`, and Ollama `llama3.2:1b` with a rule-based fallback if Ollama does not answer.
 
 ## What you need
@@ -90,12 +104,12 @@ Use the address this laptop actually has. The number above is only an example.
 
 ## 4. Firewall
 
-Other devices need inbound TCP **8000**. Open **8443** only while you are testing the phone recorder.
+Other devices need inbound TCP **8000**, and UDP **5353** so the pod can find the hub by mDNS. Open **8443** only while you are testing the phone recorder.
 
 Fedora:
 
 ```bash
-sudo firewall-cmd --add-port=8000/tcp
+sudo firewall-cmd --add-port=8000/tcp --add-service=mdns
 ```
 
 Ubuntu, if ufw is on:
@@ -104,7 +118,7 @@ Ubuntu, if ufw is on:
 sudo ufw allow 8000/tcp
 ```
 
-Windows: allow Python through the firewall when Windows asks, or allow inbound TCP 8000 for the private network.
+Windows: allow Python through the firewall when Windows asks, or allow inbound TCP 8000 for the private network. If the pod still says "No hub", Windows is blocking mDNS: set `KINIG_HUB_HOST` in `firmware/kinig_pod/config.h` to the IP the hub prints.
 
 ## 5. Run it
 
@@ -116,7 +130,16 @@ bash scripts/run_hub.sh
 
 Windows: `hub\.venv\Scripts\python -m kinig_hub.main`
 
-The log line `Notes and QR codes use http://...` is the address to put in a phone browser or in the ESP32 config.
+The log line `Notes and QR codes use http://...` is the address phones use. `Host console: http://127.0.0.1:8000/host` is where Start, Stop, pairing, and approvals live. `/` redirects there.
+
+Fake ESP32 (no board), from a second terminal:
+
+```bash
+python scripts/fake_esp32.py --file path/to/meeting.wav
+python scripts/fake_esp32.py --mic
+```
+
+It pairs, waits for Start on `/host`, streams, and prints the join QR, exactly like the pod.
 
 Fake pod (no ESP32), from a second terminal, with the venv active:
 
@@ -182,14 +205,24 @@ Windows: `hub\.venv\Scripts\python -m pytest -q hub\tests`
 
 ## 8. Firmware
 
-`firmware/` is the ESP32 sketch. Pins in `firmware/include/config.h` are `-1` until the board is wired. See `hardware/wiring.md`.
+`firmware/kinig_pod/kinig_pod.ino` is the pod: ESP32 Dev Module, INMP441 mic, SSD1306 128x64 OLED. Wiring is in `hardware/wiring.md`. Edit only `firmware/kinig_pod/config.h`: the Wi-Fi name and password. The hub address is found by mDNS.
+
+Arduino IDE:
+
+1. Boards Manager: install **esp32 by Espressif Systems**, version 3.x.
+2. Library Manager: install **Adafruit SSD1306** (it pulls in Adafruit GFX).
+3. Open `firmware/kinig_pod/kinig_pod.ino`, pick **ESP32 Dev Module** and the port, Upload.
+4. Serial Monitor at 115200 shows each step.
+
+PlatformIO, same source:
 
 ```bash
 cd firmware
-pio run
+pio run -t upload
+pio device monitor
 ```
 
-That compile does not mean the pod has been tried on a board.
+The pod compiles with Arduino-ESP32 3.3 (pioarduino 55.03.312-1). The I2S and OLED setup is the one from the tested `KinigMicOLED_Fixed.ino`. The full pod has not yet run on the board end to end.
 
 ## 9. What is stored
 
