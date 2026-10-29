@@ -4,17 +4,19 @@ Kinig is an offline meeting pod. A small recorder sends audio to a laptop on the
 
 ## Demo flow
 
-1. Start the hub on the laptop (`bash scripts/run_hub.sh`) and open `http://127.0.0.1:8000/host`.
-2. Power the pod. It joins Wi-Fi, finds the hub by mDNS, and shows a 4-digit code.
+1. Power the pod. It starts its own open Wi-Fi, **Kinig-Pod**.
+2. Join the laptop to Kinig-Pod, start the hub (`bash scripts/run_hub.sh`), and open `http://127.0.0.1:8000/host`. The pod finds the hub and shows a 4-digit code.
 3. On `/host`, check the code matches and press **Approve pod**.
 4. Press **Start recording**. The pod streams audio and shows a join QR.
-5. People scan the QR, type a name, and wait. Approve them on `/host`.
+5. People join Kinig-Pod on their phones, scan the QR, type a name, and wait. Approve them on `/host`.
 6. Press **Stop recording**. Approved phones open the notes when they are ready.
 7. Press **Done, back to ready** for the next meeting.
 
 No ESP32 at hand? `python scripts/fake_esp32.py --file meeting.wav` (or `--mic`) runs the same steps from a terminal.
 
 To see the web UI with no hardware and no models: `python scripts/mock_demo.py` (fake pods, fake viewers, canned notes, port 8080). Add `--auto` to watch the whole flow play by itself on a loop.
+
+Kinig-Pod has no internet, so phones may warn "no internet". Tell them to stay connected. The ESP32 handles about 8 devices on its Wi-Fi (`KINIG_AP_MAX_CLIENTS`). A full lecture hall needs a pocket router instead.
 
 Pairing and approval show the flow. They are not security: there is no key exchange, and everything is plain HTTP on the local Wi-Fi.
 
@@ -120,7 +122,7 @@ Ubuntu, if ufw is on:
 sudo ufw allow 8000/tcp
 ```
 
-Windows: allow Python through the firewall when Windows asks, or allow inbound TCP 8000 for the private network. If the pod still says "No hub", Windows is blocking mDNS: set `KINIG_HUB_HOST` in `firmware/kinig_pod/config.h` to the IP the hub prints.
+Windows: allow Python through the firewall when Windows asks, or allow inbound TCP 8000 for the private network. If the pod still says "No hub", check that TCP 8000 is open: the pod asks each device on its Wi-Fi for the hub when mDNS is blocked.
 
 ## 5. Run it
 
@@ -207,7 +209,7 @@ Windows: `hub\.venv\Scripts\python -m pytest -q hub\tests`
 
 ## 8. Firmware
 
-`firmware/kinig_pod/kinig_pod.ino` is the pod: ESP32 Dev Module, INMP441 mic, SSD1306 128x64 OLED. Wiring is in `hardware/wiring.md`. Create `firmware/kinig_pod/secrets.h` (gitignored) with `#define KINIG_WIFI_SSID "..."` and `#define KINIG_WIFI_PASSWORD "..."`. The hub address is found by mDNS.
+`firmware/kinig_pod/kinig_pod.ino` is the pod: ESP32 Dev Module, INMP441 mic, SSD1306 128x64 OLED. Wiring is in `hardware/wiring.md`. The pod hosts its own Wi-Fi, `Kinig-Pod` (name and optional password in `firmware/kinig_pod/config.h`). The laptop and phones join it, so no Wi-Fi password goes into the firmware. The hub address is found by mDNS.
 
 One command (Linux), with the pod plugged in by USB:
 
@@ -215,7 +217,7 @@ One command (Linux), with the pod plugged in by USB:
 bash scripts/flash_pod.sh
 ```
 
-It installs PlatformIO if needed, asks for the Wi-Fi (or copies a saved one with `--from-nm "Name"`), finds the port, and flashes. `--monitor` opens the serial log after.
+It installs PlatformIO if needed, finds the port, and flashes. `--monitor` opens the serial log after.
 
 Arduino IDE:
 
