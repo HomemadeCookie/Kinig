@@ -116,11 +116,13 @@ def create_app(
     app.state.hub = hub
     app.include_router(sessions_router)
     from kinig_hub.api.config_api import router as config_router
+    from kinig_hub.api.demo import router as demo_router
     from kinig_hub.api.dev import router as dev_router
     from kinig_hub.api.pods import router as pods_router
     from kinig_hub.api.viewers import router as viewers_router
 
     app.include_router(config_router)
+    app.include_router(demo_router)
     app.include_router(dev_router)
     app.include_router(pods_router)
     app.include_router(viewers_router)

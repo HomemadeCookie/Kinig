@@ -12,6 +12,10 @@ Kinig is an offline meeting pod. A small recorder sends audio to a laptop on the
 6. Press **Stop recording**. Approved phones open the notes when they are ready.
 7. Press **Done, back to ready** for the next meeting.
 
+## Laptop-only demo (no pod)
+
+Start the hub (`bash scripts/run_hub.sh`) and open `http://localhost:8000/demo` on the same laptop. One screen: **Start** records from the laptop mic and shows the transcript every few seconds. **Stop** finishes the transcript and lists the action items. Works with `dev_mode = false`. Use `localhost`, not the LAN IP, or the browser blocks the mic over plain HTTP.
+
 No ESP32 at hand? `python scripts/fake_esp32.py --file meeting.wav` (or `--mic`) runs the same steps from a terminal.
 
 To see the web UI with no hardware and no models: `python scripts/mock_demo.py` (fake pods, fake viewers, canned notes, port 8080). Add `--auto` to watch the whole flow play by itself on a loop.

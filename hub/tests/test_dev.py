@@ -184,3 +184,48 @@ def test_pod_network_address_wins_over_the_default_route(monkeypatch):
 
     routes["192.168.4.1"] = "10.11.116.156"  # not on the pod network
     assert config.detect_lan_ip() == "10.11.116.156"
+
+
+def test_demo_page_is_served_with_dev_mode_off(tmp_path: Path):
+    """The one-screen demo is the product page, not a dev tool."""
+    with TestClient(_app(tmp_path, dev_mode=False)) as client:
+        page = client.get("/demo")
+        assert page.status_code == 200
+        for marker in ('id="start"', 'id="stop"', 'id="transcript"', 'id="actions"', "demo.js", "pcm.js"):
+            assert marker in page.text
+        script = client.get("/static/dev/demo.js")
+        assert script.status_code == 200
+    text = (hub_dir() / "kinig_hub" / "web" / "static" / "dev" / "demo.js").read_text(encoding="utf-8")
+    assert "cdn" not in text.lower()
+    assert "session.chunk_ms" in text
+    assert '"live"' in text
+    assert "action_items" in text
+
+
+def test_demo_flow_live_transcript_then_action_items(tmp_path: Path):
+    """What demo.js does: live session, chunks, poll transcript, stop, read action items."""
+    with TestClient(_app(tmp_path, dev_mode=False)) as client:
+        opened = client.post("/sessions", json={"client": "browser", "mode": "live"}).json()
+        assert opened["mode"] == "live"
+        sid, token = opened["session_id"], opened["token"]
+        n = int(opened["chunk_ms"]) * 16
+        chunk = float32_to_pcm_bytes((0.2 * np.sin(np.arange(n) * 0.1)).astype(np.float32))
+        windows = int(float(opened["window_s"]) * 1000 // int(opened["chunk_ms"]))
+        for seq in range(windows):
+            assert client.post(f"/sessions/{sid}/audio?seq={seq}", content=chunk).status_code == 200
+        live = ""
+        for _ in range(50):
+            live = client.get(f"/s/{sid}/transcript?t={token}").json()["transcript"]
+            if live:
+                break
+            time.sleep(0.1)
+        assert "heard" in live
+        client.post(f"/sessions/{sid}/stop")
+        notes = {}
+        for _ in range(50):
+            notes = client.get(f"/s/{sid}/transcript?t={token}").json()
+            if notes["status"] in {"done", "error"}:
+                break
+            time.sleep(0.1)
+        assert notes["status"] == "done"
+        assert notes["action_items"] == ["Send the deck by Friday."]
