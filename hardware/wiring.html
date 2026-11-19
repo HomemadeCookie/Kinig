@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kinig pod wiring</title>
+<style>
+  :root {
+    --fg: var(--foreground, #e6e6e6);
+    --mut: var(--muted-foreground, #9a9aa3);
+    --bd: var(--border, #3a3a40);
+    --cd: var(--card, #1c1c20);
+    --pwr: #e5484d;
+    --gnd: #8b8d98;
+    --scl: var(--chart-1, #3b82f6);
+    --sda: var(--chart-2, #14b8a6);
+    --sck: var(--chart-3, #f59e0b);
+    --ws:  var(--chart-4, #a855f7);
+    --sd:  #22c55e;
+  }
+  html { background: var(--background, #121215); }
+  body { margin: 0 auto; padding: 16px; max-width: 760px; color: var(--fg); font-family: var(--font-sans, system-ui, sans-serif); }
+  h2 { font-size: 15px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 12px; color: var(--mut); font-size: 12px; }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { font-family: var(--font-mono, ui-monospace, monospace); font-size: 10px; fill: var(--fg); }
+  .wire { fill: none; stroke-width: 2.5; stroke-linejoin: round; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; margin-top: 14px; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--bd); }
+  th { color: var(--mut); font-weight: 500; }
+  td.mono { font-family: var(--font-mono, ui-monospace, monospace); }
+  .sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  ul { font-size: 12px; color: var(--fg); padding-left: 18px; margin: 12px 0 0; }
+  li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<h2>Kinig pod wiring: ESP32 + INMP441 + SSD1306</h2>
+<p class="sub">From firmware/kinig_pod/config.h and hardware/wiring.md (HomemadeCookie/Kinig). Pin order matches a 38-pin ESP32 DevKit.</p>
+
+<svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg">
+  <!-- ESP32 board -->
+  <rect x="290" y="50" width="140" height="362" rx="6" fill="var(--cd)" stroke="var(--bd)" stroke-width="1.5"/>
+  <text x="360" y="231" text-anchor="middle" transform="rotate(-90 360 231)" style="font-size:12px;fill:var(--mut)">ESP32 DevKit (38-pin)</text>
+  <g id="leftpins"></g>
+  <g id="rightpins"></g>
+
+  <!-- INMP441 -->
+  <rect x="40" y="160" width="130" height="160" rx="6" fill="var(--cd)" stroke="var(--bd)" stroke-width="1.5"/>
+  <text x="60" y="152" style="font-size:12px;font-weight:600">INMP441 mic (I2S)</text>
+  <!-- SSD1306 -->
+  <rect x="560" y="52" width="130" height="90" rx="6" fill="var(--cd)" stroke="var(--bd)" stroke-width="1.5"/>
+  <rect x="590" y="100" width="80" height="34" rx="2" fill="none" stroke="var(--mut)" stroke-dasharray="3 2"/>
+  <text x="562" y="160" style="font-size:12px;font-weight:600">SSD1306 OLED 128x64</text>
+  <text x="562" y="174" style="fill:var(--mut)">I2C address 0x3C</text>
+
+  <!-- Wires: mic -->
+  <path class="wire" stroke="var(--pwr)" d="M170 180 H260 V70 H290"/>
+  <path class="wire" stroke="var(--sd)"  d="M170 196 H290"/>
+  <path class="wire" stroke="var(--ws)"  d="M170 214 H290"/>
+  <path class="wire" stroke="var(--sck)" d="M170 232 H290"/>
+  <path class="wire" stroke="var(--gnd)" d="M170 268 H200 V304"/>
+  <path class="wire" stroke="var(--gnd)" d="M170 304 H290"/>
+  <circle cx="200" cy="304" r="3.5" fill="var(--gnd)"/>
+
+  <!-- Wires: OLED -->
+  <path class="wire" stroke="var(--pwr)" d="M560 70 H455 V30 H260 V70"/>
+  <circle cx="260" cy="70" r="3.5" fill="var(--pwr)"/>
+  <path class="wire" stroke="var(--gnd)" d="M560 88 H445 V70 H430"/>
+  <path class="wire" stroke="var(--scl)" d="M560 106 H430"/>
+  <path class="wire" stroke="var(--sda)" d="M560 124 H470 V160 H430"/>
+
+  <g id="modpins"></g>
+</svg>
+
+<table>
+  <tr><th>Part</th><th>Module pin</th><th>ESP32 pin</th><th>Firmware name</th></tr>
+  <tr><td>INMP441</td><td class="mono"><span class="sw" style="background:var(--pwr)"></span>VDD</td><td class="mono">3V3</td><td></td></tr>
+  <tr><td></td><td class="mono"><span class="sw" style="background:var(--gnd)"></span>GND</td><td class="mono">GND</td><td></td></tr>
+  <tr><td></td><td class="mono"><span class="sw" style="background:var(--sck)"></span>SCK</td><td class="mono">GPIO26</td><td class="mono">MIC_BCLK</td></tr>
+  <tr><td></td><td class="mono"><span class="sw" style="background:var(--ws)"></span>WS</td><td class="mono">GPIO25</td><td class="mono">MIC_WS</td></tr>
+  <tr><td></td><td class="mono"><span class="sw" style="background:var(--sd)"></span>SD</td><td class="mono">GPIO33</td><td class="mono">MIC_DATA</td></tr>
+  <tr><td></td><td class="mono"><span class="sw" style="background:var(--gnd)"></span>L/R</td><td class="mono">GND</td><td>left slot</td></tr>
+  <tr><td>SSD1306</td><td class="mono"><span class="sw" style="background:var(--pwr)"></span>VCC</td><td class="mono">3V3</td><td></td></tr>
+  <tr><td></td><td class="mono"><span class="sw" style="background:var(--gnd)"></span>GND</td><td class="mono">GND</td><td></td></tr>
+  <tr><td></td><td class="mono"><span class="sw" style="background:var(--scl)"></span>SCL</td><td class="mono">GPIO22</td><td class="mono">OLED_SCL</td></tr>
+  <tr><td></td><td class="mono"><span class="sw" style="background:var(--sda)"></span>SDA</td><td class="mono">GPIO21</td><td class="mono">OLED_SDA</td></tr>
+</table>
+
+<ul>
+  <li>Power both modules from 3V3, not 5V. The INMP441 is a 3.3 V part.</li>
+  <li>L/R to GND puts the mic on the left slot; the firmware reads <span style="font-family:var(--font-mono,monospace)">I2S_STD_SLOT_LEFT</span>, 32-bit, 16 kHz mono.</li>
+  <li>I2C runs at 100 kHz. OLED pin order differs between modules; match by the printed label, not position.</li>
+  <li>No button. Start and Stop are on the hub's /host page. Flash at 115200 baud.</li>
+</ul>
+
+<script>
+  const L = ["3V3","EN","VP","VN","34","35","32","33","25","26","27","14","12","GND","13","D2","D3","CMD","5V"];
+  const R = ["GND","23","22","TX0","RX0","21","GND","19","18","5","17","16","4","0","2","15","D1","D0","CLK"];
+  const usedL = {"3V3":"var(--pwr)","33":"var(--sd)","25":"var(--ws)","26":"var(--sck)"};
+  const usedR = {"22":"var(--scl)","21":"var(--sda)"};
+  const ns = "http://www.w3.org/2000/svg";
+  function el(tag, attrs, text) {
+    const e = document.createElementNS(ns, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text) e.textContent = text;
+    return e;
+  }
+  const gl = document.getElementById("leftpins"), gr = document.getElementById("rightpins");
+  L.forEach((p, i) => {
+    const y = 70 + i * 18;
+    const on = usedL[p] || (p === "GND" && i === 13 ? "var(--gnd)" : null);
+    gl.appendChild(el("circle", {cx: 290, cy: y, r: 3.5, fill: on || "var(--bd)"}));
+    gl.appendChild(el("text", {x: 298, y: y + 3.5, style: on ? "" : "fill:var(--mut)"}, /^\d+$/.test(p) ? "G" + p : p));
+  });
+  R.forEach((p, i) => {
+    const y = 70 + i * 18;
+    const on = usedR[p] || (p === "GND" && i === 0 ? "var(--gnd)" : null);
+    gr.appendChild(el("circle", {cx: 430, cy: y, r: 3.5, fill: on || "var(--bd)"}));
+    gr.appendChild(el("text", {x: 422, y: y + 3.5, "text-anchor": "end", style: on ? "" : "fill:var(--mut)"}, /^\d+$/.test(p) ? "G" + p : p));
+  });
+  const gm = document.getElementById("modpins");
+  [["VDD",180],["SD",196],["WS",214],["SCK",232],["L/R",268],["GND",304]].forEach(([n, y]) => {
+    gm.appendChild(el("circle", {cx: 170, cy: y, r: 3.5, fill: "var(--fg)"}));
+    gm.appendChild(el("text", {x: 162, y: y + 3.5, "text-anchor": "end"}, n));
+  });
+  [["VCC",70],["GND",88],["SCL",106],["SDA",124]].forEach(([n, y]) => {
+    gm.appendChild(el("circle", {cx: 560, cy: y, r: 3.5, fill: "var(--fg)"}));
+    gm.appendChild(el("text", {x: 568, y: y + 3.5}, n));
+  });
+</script>
+</body>
+</html>
