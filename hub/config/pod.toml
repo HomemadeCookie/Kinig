@@ -5,6 +5,6 @@
 
 chunk_ms = 1000          # audio per POST
 buffer_count = 4        # buffers in the ESP32 queue
-window_s = 4            # hub transcription window (separate from chunk size). 4 on migs-branch so the live transcript updates faster; main uses 8
+window_s = 8            # hub transcription window (separate from chunk size)
 mic_shift = 14          # 32-bit I2S sample -> 16-bit; higher is quieter
 debug_save_audio = false  # true writes a WAV under hub/debug_audio/ (testing only)
