@@ -2,7 +2,7 @@
 # "auto" detects the laptop's LAN IP when the hub starts. Set a literal IP
 # (the pocket-router address) to override detection.
 public_host = "auto"
-
+# 10.168.106.43 dorm
 # ESP32, fake_pod, the laptop dev page, and every notes page.
 http_port = 8000
 
@@ -10,8 +10,8 @@ http_port = 8000
 https_port = 8443
 
 # Turn both off for the demo. dev.py is not loaded when dev_mode is false.
-dev_mode = false
-dev_https = false
+dev_mode = true #false
+dev_https = true #false
 
 # end: transcribe and summarize after stop. live: transcribe rolling windows
 # during the meeting. A POST /sessions body can override this for one meeting.
