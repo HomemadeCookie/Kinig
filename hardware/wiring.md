@@ -16,3 +16,5 @@ From the tested mic + OLED sketch (`KinigMicOLED_Fixed.ino`, 2026-10-29). The pi
 | | L/R | GND (left slot) |
 
 The pod has no button. Start and Stop are on the hub's `/host` page.
+
+A drawn diagram of the same wiring is in [`wiring.html`](wiring.html). Open it in a browser.
