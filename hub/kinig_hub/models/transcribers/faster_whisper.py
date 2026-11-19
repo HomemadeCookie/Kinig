@@ -11,6 +11,7 @@ only while the laptop still has internet. The hub and the bench never download.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import numpy as np
@@ -40,12 +41,20 @@ class FasterWhisperTranscriber(Transcriber):
         [transcriber.options] if you have a GPU. They are not required in the
         TOML file. int8 is the usual CPU setting; float32 is slower.
         """
-        return {
+        kwargs = {
             "device": self.options.get("device", "cpu"),
             "compute_type": self.options.get("compute_type", "int8"),
             "download_root": str(whisper_weights_dir()),
             "local_files_only": local_files_only,
         }
+        # cpu_threads: unset keeps the library default (4). "auto" uses half the
+        # logical cores, about one per physical core.
+        threads = self.options.get("cpu_threads")
+        if threads == "auto":
+            threads = max(1, (os.cpu_count() or 2) // 2)
+        if isinstance(threads, int) and threads > 0:
+            kwargs["cpu_threads"] = threads
+        return kwargs
 
     def transcribe_kwargs(self) -> dict:
         """Arguments for WhisperModel.transcribe().
@@ -64,6 +73,10 @@ class FasterWhisperTranscriber(Transcriber):
             "task": self.options.get("task", "transcribe"),
             "vad_filter": self.options.get("vad_filter", True),
         }
+        # beam_size 1 (greedy) is several times faster on CPU than the library's 5.
+        beam = self.options.get("beam_size")
+        if isinstance(beam, int) and beam > 0:
+            kwargs["beam_size"] = beam
         prompt = self.options.get("initial_prompt")
         if isinstance(prompt, str) and prompt.strip():
             kwargs["initial_prompt"] = prompt

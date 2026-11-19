@@ -387,3 +387,22 @@ def test_ollama_retries_once_when_a_key_is_missing():
     summarizer.prompt = "Summarize."
     summarizer.generate = lambda body: next(replies)
     assert summarizer.summarize("hello")["action_items"] == ["a"]
+
+
+def test_faster_whisper_speed_options_pass_through():
+    fast = FasterWhisperTranscriber({"model": "small", "beam_size": 1, "cpu_threads": 6})
+    assert fast.transcribe_kwargs()["beam_size"] == 1
+    assert fast.runtime_model_kwargs(local_files_only=True)["cpu_threads"] == 6
+
+
+def test_faster_whisper_cpu_threads_auto_uses_half_the_logical_cores():
+    import os
+
+    auto = FasterWhisperTranscriber({"model": "small", "cpu_threads": "auto"})
+    assert auto.runtime_model_kwargs(local_files_only=True)["cpu_threads"] == max(1, (os.cpu_count() or 2) // 2)
+
+
+def test_faster_whisper_speed_options_default_to_library_behaviour():
+    plain = FasterWhisperTranscriber({"model": "small"})
+    assert "beam_size" not in plain.transcribe_kwargs()
+    assert "cpu_threads" not in plain.runtime_model_kwargs(local_files_only=True)

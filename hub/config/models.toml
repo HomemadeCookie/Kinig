@@ -9,6 +9,8 @@ backend = "faster_whisper"
 model = "small"           # multilingual, not "base.en". Use "small" on a stronger laptop. base default
 language = "auto"          # or "auto"; benchmark both
 task = "transcribe"      # "translate" would turn Tagalog into English
+beam_size = 1            # greedy decoding; much faster on CPU than the default 5
+cpu_threads = "auto"     # half the logical cores; the library default is 4
 initial_prompt = "Okay, so yung deadline natin is Friday, tapos i-review natin yung contract."
 
 [summarizer]
