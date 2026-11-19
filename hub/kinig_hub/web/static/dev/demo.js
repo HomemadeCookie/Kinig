@@ -12,6 +12,8 @@
   var startedAt = 0;
   var timerId = 0;
   var pollId = 0;
+  // Last transcript on screen. Stop and later polls never shrink or blank it.
+  var shown = "";
 
   var startBtn = document.getElementById("start");
   var stopBtn = document.getElementById("stop");
@@ -50,6 +52,7 @@
   async function onStart() {
     startBtn.disabled = true;
     errorEl.textContent = "";
+    shown = "";
     transcriptEl.textContent = "";
     showActions(null);
     seq = 0;
@@ -125,19 +128,24 @@
     );
     if (!response.ok) return;
     var data = await response.json();
-    if (data.transcript) {
-      var atBottom = transcriptEl.scrollHeight - transcriptEl.scrollTop - transcriptEl.clientHeight < 40;
-      transcriptEl.textContent = data.transcript;
-      if (atBottom) transcriptEl.scrollTop = transcriptEl.scrollHeight;
-    }
+    showTranscript(data.transcript);
     if (!recording) setState(data.status);
     if (data.status === "done" || data.status === "error") {
       clearInterval(pollId);
       if (data.error) errorEl.textContent = data.error;
-      if (!data.transcript) transcriptEl.textContent = "(Nothing was heard.)";
+      if (!shown) transcriptEl.textContent = "(Nothing was heard.)";
       showActions(data.action_items || []);
       startBtn.disabled = false;
     }
+  }
+
+  function showTranscript(text) {
+    // The hub only appends, so a shorter or empty reply is a blip: keep what we have.
+    if (!text || text.length < shown.length || text === shown) return;
+    var atBottom = transcriptEl.scrollHeight - transcriptEl.scrollTop - transcriptEl.clientHeight < 40;
+    shown = text;
+    transcriptEl.textContent = text;
+    if (atBottom) transcriptEl.scrollTop = transcriptEl.scrollHeight;
   }
 
   function showActions(items) {

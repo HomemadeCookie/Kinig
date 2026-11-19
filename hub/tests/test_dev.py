@@ -200,6 +200,8 @@ def test_demo_page_is_served_with_dev_mode_off(tmp_path: Path):
     assert "session.chunk_ms" in text
     assert '"live"' in text
     assert "action_items" in text
+    # The page keeps the transcript it already showed when a poll returns less.
+    assert "text.length < shown.length" in text
 
 
 def test_demo_flow_live_transcript_then_action_items(tmp_path: Path):
@@ -229,3 +231,5 @@ def test_demo_flow_live_transcript_then_action_items(tmp_path: Path):
             time.sleep(0.1)
         assert notes["status"] == "done"
         assert notes["action_items"] == ["Send the deck by Friday."]
+        # Stop must not clear the live transcript.
+        assert notes["transcript"].startswith(live)
