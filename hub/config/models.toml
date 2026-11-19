@@ -6,8 +6,8 @@
 backend = "faster_whisper"
 
 [transcriber.options]
-model = "small"           # multilingual, not "base.en". Use "small" on a stronger laptop. base default
-language = "auto"          # or "auto"; benchmark both
+model = "large-v3-turbo"  # Mig's 32 GB laptop. ~1.6 GB download on first start. Back to "small" if the live transcript lags. base default
+language = "tl"           # not "auto": auto guesses per 8 s window and can flip to English or translate
 task = "transcribe"      # "translate" would turn Tagalog into English
 initial_prompt = "Okay, so yung deadline natin is Friday, tapos i-review natin yung contract."
 
@@ -17,7 +17,7 @@ fallback = "rule_based"  # used when the main summarizer errors or times out
 timeout_s = 300         # a 20-minute transcript took ~60 s on a Core Ultra 5 135U at 4k context
 
 [summarizer.options]
-model = "llama3.1:8b"    # 8 GB laptops. Use "llama3.2:3b" when the machine has room. llama3.2:1b default.
+model = "gemma3:12b"     # better multilingual than llama3.1:8b, ~8 GB. Run: ollama pull gemma3:12b. llama3.2:1b default.
 prompt_file = "config/prompts/summary.txt"
 output_language = "en"
 num_ctx = 16384         # tokens; the 4096 default cuts off long lectures. ~0.5 GB more RAM
