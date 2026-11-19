@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kinig</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #f7f4ef;
+      color: #1a1a1a;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #ddd6ca;
+    }
+    h1 { font-size: 1.5rem; margin: 0; letter-spacing: 0.02em; }
+    #state { color: #6b6357; font-size: 1rem; }
+    #timer { font-variant-numeric: tabular-nums; color: #6b6357; margin-left: auto; font-size: 1.1rem; }
+    button {
+      font-size: 1.15rem;
+      font-weight: 600;
+      padding: 0.7rem 1.6rem;
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.4; cursor: default; }
+    #start { background: #1f6f4a; }
+    #stop { background: #a3322a; }
+    main {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 1.5rem;
+      padding: 1.5rem;
+    }
+    section {
+      background: #fff;
+      border: 1px solid #ddd6ca;
+      border-radius: 12px;
+      padding: 1.2rem 1.4rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b6357; margin: 0 0 0.8rem; }
+    #transcript {
+      flex: 1;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      font-size: 1.25rem;
+      line-height: 1.55;
+      margin: 0;
+    }
+    #actions { margin: 0; padding-left: 1.3rem; font-size: 1.2rem; line-height: 1.5; overflow-y: auto; }
+    #actions li { margin-bottom: 0.7rem; }
+    .hint { color: #9a9184; }
+    #error { color: #a3322a; padding: 0 1.5rem; margin: 0.5rem 0 0; }
+    #error:empty { display: none; }
+    @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Kinig</h1>
+    <button id="start" type="button">Start</button>
+    <button id="stop" type="button" disabled>Stop</button>
+    <span id="state">Ready</span>
+    <span id="timer">00:00</span>
+  </header>
+  <p id="error"></p>
+  <main>
+    <section>
+      <h2>Live transcript</h2>
+      <pre id="transcript"><span class="hint">Press Start and talk. Text appears every few seconds.</span></pre>
+    </section>
+    <section>
+      <h2>Action items</h2>
+      <ul id="actions"><li class="hint">Appear here after you press Stop.</li></ul>
+    </section>
+  </main>
+  <script src="/static/dev/pcm.js"></script>
+  <script src="/static/dev/demo.js"></script>
+</body>
+</html>
